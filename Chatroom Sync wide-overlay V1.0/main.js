@@ -1,18 +1,6 @@
 (function () {
   "use strict";
 
-  /*
-    可調整區域
-    TEST_MODE:
-      false = 正式模式，等待 Streamlabs 聊天室事件
-      true  = 預覽模式，自動產生假訊息
-
-    MAX_MESSAGES:
-      最大保留訊息數
-
-    DUPLICATE_WINDOW_MS:
-      同一使用者同一訊息在這段時間內重複出現時，視為 Streamlabs 重複事件並忽略。
-  */
   var TEST_MODE = false;
   var MAX_MESSAGES = 18;
   var DUPLICATE_WINDOW_MS = 1200;
@@ -40,6 +28,38 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function normalizeUsername(value) {
+    return String(value || "")
+      .trim()
+      .replace(/^@+/, "")
+      .replace(/:+$/, "")
+      .trim();
+  }
+
+  function isSystemUsername(username) {
+    var normalized = normalizeUsername(username).toLowerCase();
+
+    return (
+      normalized === "" ||
+      normalized === "tmi.twitch.tv" ||
+      normalized === "jtv" ||
+      normalized.indexOf("tmi.twitch.tv") !== -1 ||
+      normalized.indexOf(".twitch.tv") !== -1
+    );
+  }
+
+  function pickUsername() {
+    for (var i = 0; i < arguments.length; i += 1) {
+      var candidate = normalizeUsername(arguments[i]);
+
+      if (candidate && !isSystemUsername(candidate)) {
+        return candidate;
+      }
+    }
+
+    return "";
   }
 
   function hashUsername(username) {
@@ -83,11 +103,11 @@
   }
 
   window.addMessage = function addMessage(username, message) {
-    if (!chatMessages) {
+    if (!chatMessages || isSystemUsername(username)) {
       return;
     }
 
-    var displayName = username || "anonymous";
+    var displayName = normalizeUsername(username);
     var safeUsername = escapeHtml(displayName);
     var rawMessageHtml = String(message || "");
     var usernameColor = getUsernameColor(displayName);
@@ -200,35 +220,34 @@
 
     var message = getMessageHtml(data, event, detail);
 
-    var username = pickFirstExisting(
+    var username = pickUsername(
       data.displayName,
       data.display_name,
-      data.name,
-      data.username,
+      data.user,
       data.userName,
-      data.from,
+      data.username,
       data.nick,
       data.sender,
+      data.name,
       event.displayName,
       event.display_name,
-      event.name,
-      event.username,
+      event.user,
       event.userName,
-      event.from,
+      event.username,
       event.nick,
       event.sender,
+      event.name,
       detail.displayName,
       detail.display_name,
-      detail.name,
-      detail.username,
+      detail.user,
       detail.userName,
-      detail.from,
+      detail.username,
       detail.nick,
       detail.sender,
-      "anonymous"
+      detail.name
     );
 
-    if (!message) {
+    if (!message || !username || isSystemUsername(username)) {
       return null;
     }
 
@@ -263,7 +282,7 @@
   function handleStreamlabsEvent(obj) {
     var payload = getChatPayload(obj);
 
-    if (!payload) {
+    if (!payload || isSystemUsername(payload.username)) {
       return;
     }
 
