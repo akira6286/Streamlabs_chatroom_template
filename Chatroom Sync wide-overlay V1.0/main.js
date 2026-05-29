@@ -59,12 +59,12 @@
       }
     }
 
-    return "";
+    return "chat";
   }
 
   function hashUsername(username) {
     var hash = 0;
-    var text = String(username || "anonymous");
+    var text = String(username || "chat");
 
     for (var i = 0; i < text.length; i += 1) {
       hash = text.charCodeAt(i) + ((hash << 5) - hash);
@@ -103,14 +103,18 @@
   }
 
   window.addMessage = function addMessage(username, message) {
-    if (!chatMessages || isSystemUsername(username)) {
+    if (!chatMessages) {
       return;
     }
 
-    var displayName = normalizeUsername(username);
+    var displayName = isSystemUsername(username) ? "chat" : normalizeUsername(username || "chat");
     var safeUsername = escapeHtml(displayName);
     var rawMessageHtml = String(message || "");
     var usernameColor = getUsernameColor(displayName);
+
+    if (!rawMessageHtml) {
+      return;
+    }
 
     var line = document.createElement("div");
     line.className = "chat-line";
@@ -123,6 +127,20 @@
     chatMessages.appendChild(line);
     trimMessages();
   };
+
+  function getNestedValue(object, path) {
+    var current = object;
+
+    for (var i = 0; i < path.length; i += 1) {
+      if (!current || current[path[i]] === undefined || current[path[i]] === null) {
+        return "";
+      }
+
+      current = current[path[i]];
+    }
+
+    return current;
+  }
 
   function getMessageHtmlFromParts(parts) {
     if (!Array.isArray(parts)) {
@@ -221,6 +239,18 @@
     var message = getMessageHtml(data, event, detail);
 
     var username = pickUsername(
+      getNestedValue(data, ["tags", "display-name"]),
+      getNestedValue(data, ["tags", "login"]),
+      getNestedValue(data, ["tags", "username"]),
+      getNestedValue(data, ["userstate", "display-name"]),
+      getNestedValue(data, ["userstate", "username"]),
+
+      getNestedValue(event, ["tags", "display-name"]),
+      getNestedValue(event, ["tags", "login"]),
+      getNestedValue(event, ["tags", "username"]),
+      getNestedValue(event, ["userstate", "display-name"]),
+      getNestedValue(event, ["userstate", "username"]),
+
       data.displayName,
       data.display_name,
       data.user,
@@ -228,7 +258,9 @@
       data.username,
       data.nick,
       data.sender,
+      data.from,
       data.name,
+
       event.displayName,
       event.display_name,
       event.user,
@@ -236,7 +268,9 @@
       event.username,
       event.nick,
       event.sender,
+      event.from,
       event.name,
+
       detail.displayName,
       detail.display_name,
       detail.user,
@@ -244,10 +278,11 @@
       detail.username,
       detail.nick,
       detail.sender,
+      detail.from,
       detail.name
     );
 
-    if (!message || !username || isSystemUsername(username)) {
+    if (!message) {
       return null;
     }
 
@@ -282,7 +317,7 @@
   function handleStreamlabsEvent(obj) {
     var payload = getChatPayload(obj);
 
-    if (!payload || isSystemUsername(payload.username)) {
+    if (!payload) {
       return;
     }
 
