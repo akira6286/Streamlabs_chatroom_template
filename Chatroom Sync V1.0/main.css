@@ -1,11 +1,9 @@
 :root {
-  --panel-width: 420px; /*寬度*/
-  --panel-height: 600px; /*高度*/
-  --panel-left: 0px;
-  --panel-top: 0px;
+  --panel-width: 420px;
+  --panel-height: 600px;
 
   --font-family: "Consolas", "Cascadia Mono", "Courier New", monospace;
-  --font-size: 22px;  /*這裡是字體大小*/
+  --font-size: 22px;
   --line-height: 1.42;
 
   --max-messages: 18;
@@ -51,12 +49,14 @@ body {
 
 body {
   font-family: var(--font-family);
+  font-size: var(--font-size);
+  color: var(--message-color);
+  text-shadow: none;
 }
 
 .cyber-chat-widget {
   position: fixed;
-  left: 0;
-  top: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -69,8 +69,6 @@ body {
 
 .chat-panel {
   position: relative;
-  left: auto;
-  top: auto;
   width: var(--panel-width);
   height: var(--panel-height);
   display: grid;
@@ -186,8 +184,7 @@ body {
   );
 }
 
-.chat-body::before {
-  content: ">_";
+.terminal-cursor {
   position: absolute;
   left: var(--panel-padding-x);
   bottom: 10px;
@@ -203,10 +200,12 @@ body {
   animation: cursorBlink 1s steps(2, start) infinite;
 }
 
-.chat-messages {
+#log {
   position: relative;
   z-index: 1;
+  width: 100%;
   height: 100%;
+  padding: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -214,37 +213,97 @@ body {
   overflow: hidden;
 }
 
-.chat-line {
+#log > div {
+  display: block;
+  animation: messageIn 420ms ease-out both;
+}
+
+#log > div.deleted {
+  visibility: hidden;
+}
+
+.chat-line-native {
   flex: 0 0 auto;
   max-width: 100%;
   font-size: var(--font-size);
   line-height: var(--line-height);
   color: var(--message-color);
   overflow-wrap: anywhere;
+  word-break: break-word;
   text-shadow: 0 0 8px rgba(120, 255, 236, 0.24);
-  animation: messageIn 420ms ease-out both;
 }
 
 .timestamp {
   color: var(--timestamp-color);
+  font-weight: 700;
   text-shadow:
     0 0 7px rgba(156, 255, 79, 0.8),
     0 0 14px rgba(156, 255, 79, 0.3);
 }
 
-.username {
+.meta {
+  display: inline;
   font-weight: 700;
+  white-space: normal;
+  text-overflow: initial;
+  overflow: visible;
+  padding: 0;
+  margin: 0;
+  text-align: left;
   text-shadow: 0 0 8px currentColor;
 }
 
-.message {
-  color: var(--message-color);
+.name {
+  margin-left: 0.2em;
 }
 
-.emote img,
+.message {
+  display: inline;
+  color: var(--message-color);
+  word-wrap: break-word;
+}
+
+.badges {
+  display: inline;
+}
+
+.badge {
+  display: inline-block;
+  height: 1em;
+  margin-right: 0.2em;
+  vertical-align: middle;
+  position: relative;
+  top: -0.1em;
+}
+
+.colon {
+  display: none;
+}
+
+/* Streamlabs native emote support */
+#log .emote {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  padding: 0.4em 0.2em;
+  position: relative;
+  vertical-align: middle;
+}
+
+#log .emote img {
+  display: inline-block;
+  height: 1.35em;
+  width: auto;
+  opacity: 0;
+  vertical-align: middle;
+}
+
+/* Normal img emote support */
+#log img,
+.message img,
 img.emoji,
-yt-emoji,
-.message img {
+yt-emoji {
   max-height: 1.4em;
   max-width: 2.2em;
   width: auto;
@@ -253,10 +312,6 @@ yt-emoji,
   object-fit: contain;
   display: inline-block;
   margin: 0 0.08em;
-}
-
-yt-emoji {
-  line-height: 1;
 }
 
 yt-emoji img {
