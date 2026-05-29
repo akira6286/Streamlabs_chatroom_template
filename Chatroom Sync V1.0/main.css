@@ -1,11 +1,11 @@
 :root {
-  --panel-width: 420px;
-  --panel-height: 600px;
-  --panel-left: 70px;
-  --panel-top: 90px;
+  --panel-width: 420px; /*寬度*/
+  --panel-height: 600px; /*高度*/
+  --panel-left: 0px;
+  --panel-top: 0px;
 
   --font-family: "Consolas", "Cascadia Mono", "Courier New", monospace;
-  --font-size: 15px;
+  --font-size: 22px;  /*這裡是字體大小*/
   --line-height: 1.42;
 
   --max-messages: 18;
@@ -43,8 +43,8 @@
 html,
 body {
   margin: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
   background: transparent;
 }
@@ -55,23 +55,29 @@ body {
 
 .cyber-chat-widget {
   position: fixed;
-  inset: 0;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   overflow: hidden;
   perspective: var(--panel-perspective);
 }
 
 .chat-panel {
-  position: absolute;
-  left: var(--panel-left);
-  top: var(--panel-top);
+  position: relative;
+  left: auto;
+  top: auto;
   width: var(--panel-width);
   height: var(--panel-height);
   display: grid;
   grid-template-rows: var(--titlebar-height) 1fr var(--statusbar-height);
   overflow: hidden;
 
-  transform-origin: left center;
+  transform-origin: center center;
   animation: panelFloat var(--float-duration) ease-in-out infinite;
 
   border: 1px solid var(--cyan-border);
