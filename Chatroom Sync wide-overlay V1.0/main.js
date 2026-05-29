@@ -11,14 +11,14 @@
   var usernameColors = [
     "#2bfff5",
     "#ff5cf4",
-    "#f7ff65",
     "#72ff8c",
     "#ff9f43",
     "#8ea7ff",
     "#ff6f91",
     "#65ffd0",
     "#c78cff",
-    "#ffd166"
+    "#ffd166",
+    "#f7ff65"
   ];
 
   function escapeHtml(value) {
@@ -39,22 +39,97 @@
   }
 
   function isSystemUsername(username) {
-    var normalized = normalizeUsername(username).toLowerCase();
+    var value = normalizeUsername(username).toLowerCase();
 
     return (
-      normalized === "" ||
-      normalized === "tmi.twitch.tv" ||
-      normalized === "jtv" ||
-      normalized.indexOf("tmi.twitch.tv") !== -1 ||
-      normalized.indexOf(".twitch.tv") !== -1
+      value === "" ||
+      value === "chat" ||
+      value === "tmi.twitch.tv" ||
+      value === "jtv" ||
+      value.indexOf("tmi.twitch.tv") !== -1 ||
+      value.indexOf(".twitch.tv") !== -1 ||
+      value.indexOf("streamlabs") !== -1
     );
   }
 
-  function pickUsername() {
-    for (var i = 0; i < arguments.length; i += 1) {
-      var candidate = normalizeUsername(arguments[i]);
+  function cleanMessageHtml(message) {
+    var html = String(message || "");
 
-      if (candidate && !isSystemUsername(candidate)) {
+    html = html.replace(/^\s*:?\s*@?tmi\.twitch\.tv\s*:\s*/i, "");
+    html = html.replace(/^\s*:?\s*@?tmi\.twitch\.tv\s+/i, "");
+    html = html.replace(/^\s*:?\s*jtv\s*:\s*/i, "");
+
+    return html.trim();
+  }
+
+  function isSystemMessage(message) {
+    var text = String(message || "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+    return (
+      text === "" ||
+      text.indexOf("tmi.twitch.tv") !== -1 ||
+      text.indexOf("twitch.tv/tags") !== -1 ||
+      text.indexOf("twitch.tv/commands") !== -1 ||
+      text.indexOf("twitch.tv/membership") !== -1 ||
+      text.indexOf("cap * ack") !== -1 ||
+      text.indexOf("cap req") !== -1 ||
+      text.indexOf("globaluserstate") !== -1 ||
+      text.indexOf("roomstate") !== -1 ||
+      text.indexOf("userstate") !== -1 ||
+      text.indexOf("clearchat") !== -1 ||
+      text.indexOf("clearmsg") !== -1 ||
+      text.indexOf("hosttarget") !== -1 ||
+      text.indexOf("reconnect") !== -1 ||
+      text.indexOf("notice") === 0 ||
+      text.indexOf("ping") === 0 ||
+      text.indexOf("pong") === 0
+    );
+  }
+
+  function isValidUsername(username) {
+    var value = normalizeUsername(username);
+
+    return (
+      value &&
+      !isSystemUsername(value) &&
+      value.length <= 32 &&
+      /^[a-zA-Z0-9_\-\u3040-\u30ff\u3400-\u9fff]+$/.test(value)
+    );
+  }
+
+  function pickFirstExisting() {
+    for (var i = 0; i < arguments.length; i += 1) {
+      if (arguments[i] !== undefined && arguments[i] !== null && arguments[i] !== "") {
+        return arguments[i];
+      }
+    }
+
+    return "";
+  }
+
+  function getNestedValue(object, path) {
+    var current = object;
+
+    for (var i = 0; i < path.length; i += 1) {
+      if (!current || current[path[i]] === undefined || current[path[i]] === null) {
+        return "";
+      }
+
+      current = current[path[i]];
+    }
+
+    return current;
+  }
+
+  function pickUsernameFromList(list) {
+    for (var i = 0; i < list.length; i += 1) {
+      var candidate = normalizeUsername(list[i]);
+
+      if (isValidUsername(candidate)) {
         return candidate;
       }
     }
@@ -62,9 +137,86 @@
     return "";
   }
 
+  function findUsernameDeep(source) {
+    var usernameKeys = {
+      displayName: true,
+      display_name: true,
+      username: true,
+      userName: true,
+      user_name: true,
+      login: true,
+      nick: true,
+      sender: true,
+      from: true,
+      user: true,
+      name: true
+    };
+
+    var queue = [source];
+    var checked = 0;
+
+    while (queue.length && checked < 200) {
+      var item = queue.shift();
+      checked += 1;
+
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      for (var key in item) {
+        if (!Object.prototype.hasOwnProperty.call(item, key)) {
+          continue;
+        }
+
+        if (usernameKeys[key] && isValidUsername(item[key])) {
+          return normalizeUsername(item[key]);
+        }
+
+        if (item[key] && typeof item[key] === "object") {
+          queue.push(item[key]);
+        }
+      }
+    }
+
+    return "";
+  }
+
+  function extractUsernameFromRawIrc(source) {
+    var text = String(source || "");
+    var match = text.match(/:([a-zA-Z0-9_]{2,32})![^ ]+\s+PRIVMSG/i);
+
+    if (match && isValidUsername(match[1])) {
+      return normalizeUsername(match[1]);
+    }
+
+    return "";
+  }
+
+  function extractUsernameFromMessage(message) {
+    var plain = String(message || "").replace(/<[^>]*>/g, "");
+    var match = plain.match(/^\s*([a-zA-Z0-9_\-\u3040-\u30ff\u3400-\u9fff]{2,32})\s*:\s+/);
+
+    if (match && isValidUsername(match[1])) {
+      return normalizeUsername(match[1]);
+    }
+
+    return "";
+  }
+
+  function stripUsernamePrefixFromMessage(message, username) {
+    var html = String(message || "");
+    var safeName = String(username || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    if (!safeName) {
+      return html;
+    }
+
+    return html.replace(new RegExp("^\\s*" + safeName + "\\s*:\\s*", "i"), "");
+  }
+
   function hashUsername(username) {
     var hash = 0;
-    var text = String(username || "anonymous");
+    var text = String(username || "chat");
 
     for (var i = 0; i < text.length; i += 1) {
       hash = text.charCodeAt(i) + ((hash << 5) - hash);
@@ -92,24 +244,36 @@
     }
   }
 
-  function pickFirstExisting() {
-    for (var i = 0; i < arguments.length; i += 1) {
-      if (arguments[i] !== undefined && arguments[i] !== null && arguments[i] !== "") {
-        return arguments[i];
-      }
-    }
-
-    return "";
-  }
-
   window.addMessage = function addMessage(username, message) {
-    if (!chatMessages || isSystemUsername(username)) {
+    if (!chatMessages) {
       return;
     }
 
-    var displayName = normalizeUsername(username);
+    var displayName = normalizeUsername(username || "chat");
+    var rawMessageHtml = cleanMessageHtml(message);
+
+    if (!rawMessageHtml || isSystemMessage(rawMessageHtml)) {
+      return;
+    }
+
+    var embeddedUsername = extractUsernameFromMessage(rawMessageHtml);
+
+    if (displayName === "chat" && embeddedUsername) {
+      displayName = embeddedUsername;
+      rawMessageHtml = stripUsernamePrefixFromMessage(rawMessageHtml, embeddedUsername);
+    }
+
+    if (isSystemUsername(displayName)) {
+      displayName = "chat";
+    }
+
+    rawMessageHtml = cleanMessageHtml(rawMessageHtml);
+
+    if (!rawMessageHtml || isSystemMessage(rawMessageHtml)) {
+      return;
+    }
+
     var safeUsername = escapeHtml(displayName);
-    var rawMessageHtml = String(message || "");
     var usernameColor = getUsernameColor(displayName);
 
     var line = document.createElement("div");
@@ -193,20 +357,20 @@
     }
 
     if (Array.isArray(message)) {
-      return getMessageHtmlFromParts(message);
+      return cleanMessageHtml(getMessageHtmlFromParts(message));
     }
 
     if (typeof message === "object" && message !== null) {
-      return pickFirstExisting(
+      return cleanMessageHtml(pickFirstExisting(
         message.html,
         message.renderedText,
         message.text,
         message.message,
         message.name
-      );
+      ));
     }
 
-    return String(message || "");
+    return cleanMessageHtml(message);
   }
 
   function getChatPayload(obj) {
@@ -217,37 +381,80 @@
     var detail = obj.detail || {};
     var event = detail.event || {};
     var data = event.data || detail.data || event || {};
-
     var message = getMessageHtml(data, event, detail);
 
-    var username = pickUsername(
+    if (!message || isSystemMessage(message)) {
+      return null;
+    }
+
+    var username = pickUsernameFromList([
+      getNestedValue(data, ["tags", "display-name"]),
+      getNestedValue(data, ["tags", "login"]),
+      getNestedValue(data, ["badges", "display-name"]),
+      getNestedValue(data, ["userstate", "display-name"]),
+      getNestedValue(data, ["userstate", "username"]),
+
+      getNestedValue(event, ["tags", "display-name"]),
+      getNestedValue(event, ["tags", "login"]),
+      getNestedValue(event, ["userstate", "display-name"]),
+      getNestedValue(event, ["userstate", "username"]),
+
       data.displayName,
       data.display_name,
-      data.user,
       data.userName,
       data.username,
+      data.user_name,
+      data.login,
       data.nick,
       data.sender,
+      data.from,
+      data.user,
       data.name,
+
       event.displayName,
       event.display_name,
-      event.user,
       event.userName,
       event.username,
+      event.user_name,
+      event.login,
       event.nick,
       event.sender,
+      event.from,
+      event.user,
       event.name,
+
       detail.displayName,
       detail.display_name,
-      detail.user,
       detail.userName,
       detail.username,
+      detail.user_name,
+      detail.login,
       detail.nick,
       detail.sender,
+      detail.from,
+      detail.user,
       detail.name
-    );
+    ]);
 
-    if (!message || !username || isSystemUsername(username)) {
+    if (!username) {
+      username =
+        findUsernameDeep(data) ||
+        findUsernameDeep(event) ||
+        findUsernameDeep(detail) ||
+        extractUsernameFromRawIrc(JSON.stringify(data)) ||
+        extractUsernameFromRawIrc(JSON.stringify(event)) ||
+        extractUsernameFromRawIrc(JSON.stringify(detail)) ||
+        extractUsernameFromMessage(message) ||
+        "chat";
+    }
+
+    if (username !== "chat") {
+      message = stripUsernamePrefixFromMessage(message, username);
+    }
+
+    message = cleanMessageHtml(message);
+
+    if (!message || isSystemMessage(message)) {
       return null;
     }
 
@@ -282,7 +489,7 @@
   function handleStreamlabsEvent(obj) {
     var payload = getChatPayload(obj);
 
-    if (!payload || isSystemUsername(payload.username)) {
+    if (!payload) {
       return;
     }
 
@@ -296,58 +503,8 @@
   document.addEventListener("onEventReceived", handleStreamlabsEvent);
 
   if (TEST_MODE) {
-    var testMessages = [
-      {
-        username: "Astra",
-        message: "同步訊號穩定，畫面很乾淨 ✨"
-      },
-      {
-        username: "NeoKai",
-        message: "收到，聊天室連線已建立。"
-      },
-      {
-        username: "Mira",
-        message: '圖片表情測試 <img class="emoji" alt="Kappa" src="https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0">'
-      },
-      {
-        username: "Echo_07",
-        message: "STATUS: ONLINE 🟢"
-      },
-      {
-        username: "Luna",
-        message: "有人看到這行嗎？👀"
-      }
-    ];
-
-    var fakeMessages = [
-      {
-        username: "ByteFox",
-        message: "cyan glow 看起來剛剛好。"
-      },
-      {
-        username: "Orbit",
-        message: "PAGE: 00000 仍然鎖定。"
-      },
-      {
-        username: "Kuro",
-        message: "支援 emoji，也保留圖片表情 😎"
-      },
-      {
-        username: "Nova",
-        message: "終端同步完成。"
-      }
-    ];
-
-    var fakeIndex = 0;
-
-    testMessages.forEach(function (item) {
-      window.addMessage(item.username, item.message);
-    });
-
-    setInterval(function () {
-      var item = fakeMessages[fakeIndex % fakeMessages.length];
-      window.addMessage(item.username, item.message);
-      fakeIndex += 1;
-    }, 2000);
+    window.addMessage("Astra", "同步訊號穩定，畫面很乾淨 ✨");
+    window.addMessage("NeoKai", "收到，聊天室連線已建立。");
+    window.addMessage("Mira", '圖片表情測試 <img class="emoji" alt="Kappa" src="https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0">');
   }
 }());
