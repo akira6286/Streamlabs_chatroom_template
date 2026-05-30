@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sinsi Ocean Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="overlay" aria-label="Streamlabs ocean chat overlay">
+      <div class="sea-glow sea-glow-a"></div>
+      <div class="sea-glow sea-glow-b"></div>
+
+      <section class="chat-shell">
+        <svg class="shell-jelly" viewBox="0 0 220 300" aria-hidden="true">
+          <defs>
+            <linearGradient id="jellyBell" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#fff5fb" />
+              <stop offset="0.48" stop-color="#ffc3e1" />
+              <stop offset="1" stop-color="#79ddff" />
+            </linearGradient>
+            <linearGradient id="jellyLine" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#ff9dce" stop-opacity="0.82" />
+              <stop offset="0.56" stop-color="#7be2ff" stop-opacity="0.42" />
+              <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+            </linearGradient>
+            <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path class="jelly-shadow" d="M55 84 C58 24 164 24 166 86 C154 112 70 113 55 84Z" />
+          <path class="jelly-bell-svg" d="M48 91 C48 35 74 14 112 14 C153 14 174 41 174 93 C157 121 70 122 48 91Z" />
+          <path class="jelly-rim" d="M51 91 C68 109 86 92 101 106 C116 121 133 93 148 106 C160 116 169 101 174 93" />
+          <path class="jelly-highlight" d="M75 43 C88 26 119 25 134 40" />
+          <path class="jelly-highlight small" d="M67 68 C76 57 93 56 101 66" />
+          <g class="jelly-tentacles" filter="url(#softGlow)">
+            <path d="M73 105 C55 145 77 181 60 226 C54 243 56 258 64 276" />
+            <path d="M94 108 C78 151 106 179 91 222 C85 242 91 263 100 284" />
+            <path d="M114 110 C126 149 101 183 119 226 C128 248 123 266 113 288" />
+            <path d="M137 107 C154 146 130 184 151 228 C160 247 153 267 143 284" />
+            <path d="M158 101 C177 140 151 178 171 214 C183 237 174 257 166 274" />
+          </g>
+        </svg>
+
+        <div class="chat-header">
+          <span class="header-mark">SINSI SEA</span>
+          <span class="header-current">Live Chat</span>
+        </div>
+
+        <div id="log" class="chat-log sl__chat__layout"></div>
+
+        <script type="text/template" id="chatlist_item">
+          <div class="chat-message" data-from="{from}" data-id="{messageId}">
+            <span class="chat-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <path class="mini-jelly-bell" d="M13 31 C13 14 22 7 33 7 C45 7 52 16 52 32 C45 42 22 42 13 31Z"></path>
+                <path class="mini-line" d="M16 31 C22 38 27 29 32 36 C38 43 44 30 51 32"></path>
+                <path class="mini-jelly-line" d="M22 38 C15 48 23 53 18 61 M31 39 C27 49 35 53 31 62 M40 38 C47 48 39 53 44 61"></path>
+              </svg>
+            </span>
+            <div class="chat-name" style="color: {color}">
+              <span class="badges"></span>
+              <span class="name">{from}</span>
+            </div>
+            <div class="chat-text">{message}</div>
+          </div>
+        </script>
+
+        <div class="sea-floor" aria-hidden="true">
+          <svg class="floor-art starfish-a" viewBox="0 0 80 80">
+            <path class="star-body" d="M40 8 C46 8 49 25 53 29 C57 33 73 31 75 37 C77 43 61 51 58 56 C55 61 60 75 55 78 C49 81 42 66 37 64 C32 62 19 72 14 68 C9 64 21 52 21 46 C21 40 8 31 11 26 C14 20 30 27 35 24 C40 21 34 8 40 8Z" />
+            <path class="star-highlight" d="M33 25 C38 20 46 20 51 27" />
+            <circle cx="39" cy="39" r="4" />
+            <circle cx="30" cy="47" r="3" />
+            <circle cx="50" cy="49" r="3" />
+            <circle cx="42" cy="56" r="2.5" />
+          </svg>
+          <svg class="floor-art starfish-b" viewBox="0 0 80 80">
+            <path class="star-body pink" d="M40 8 C46 8 49 25 53 29 C57 33 73 31 75 37 C77 43 61 51 58 56 C55 61 60 75 55 78 C49 81 42 66 37 64 C32 62 19 72 14 68 C9 64 21 52 21 46 C21 40 8 31 11 26 C14 20 30 27 35 24 C40 21 34 8 40 8Z" />
+            <path class="star-highlight" d="M33 25 C38 20 46 20 51 27" />
+            <circle cx="39" cy="39" r="4" />
+            <circle cx="30" cy="47" r="3" />
+            <circle cx="50" cy="49" r="3" />
+            <circle cx="42" cy="56" r="2.5" />
+          </svg>
+          <svg class="floor-art shell-a" viewBox="0 0 90 70">
+            <path class="shell-body" d="M10 58 C10 26 25 9 45 9 C67 9 80 27 80 58Z" />
+            <path class="shell-base" d="M10 58 C25 64 63 64 80 58 C76 67 15 68 10 58Z" />
+            <path class="shell-line" d="M45 12 V61 M30 17 C34 30 36 45 35 61 M60 17 C56 31 54 45 55 61 M20 33 C27 39 31 49 30 61 M70 33 C63 39 59 49 60 61" />
+          </svg>
+          <svg class="floor-art shell-b" viewBox="0 0 90 70">
+            <path class="shell-body small-shell" d="M10 58 C10 26 25 9 45 9 C67 9 80 27 80 58Z" />
+            <path class="shell-base" d="M10 58 C25 64 63 64 80 58 C76 67 15 68 10 58Z" />
+            <path class="shell-line" d="M45 12 V61 M30 17 C34 30 36 45 35 61 M60 17 C56 31 54 45 55 61 M20 33 C27 39 31 49 30 61 M70 33 C63 39 59 49 60 61" />
+          </svg>
+        </div>
+      </section>
+
+      <div class="jelly jelly-a" aria-hidden="true">
+        <span class="jelly-bell"></span>
+        <span class="tentacle t1"></span>
+        <span class="tentacle t2"></span>
+        <span class="tentacle t3"></span>
+        <span class="tentacle t4"></span>
+      </div>
+      <div class="jelly jelly-b" aria-hidden="true">
+        <span class="jelly-bell"></span>
+        <span class="tentacle t1"></span>
+        <span class="tentacle t2"></span>
+        <span class="tentacle t3"></span>
+      </div>
+      <div class="bubble-field" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
